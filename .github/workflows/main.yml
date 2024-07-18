@@ -1,0 +1,13 @@
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cache build files
+        uses: actions/cache@v2
+        with:
+          path: ${{ PATH_TO_CACHE }}
+          key:${{ runner.os }}-${{ hashFiles(<glob_pattern_for_files>) }}
+      - uses: mschilde/auto-label-merge-conflicts@master
+        with:
+          CONFLICT_LABEL_NAME: 'has conflicts'
+          GITHUB_TOKEN: ${{ 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 }} 
