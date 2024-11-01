@@ -28,3 +28,4 @@ termux_step_pre_configure() {
 termux_step_make_install() {
 	install -Dm700 -t $TERMUX_PREFIX/bin ass2bdnxml
 }
+Korea
