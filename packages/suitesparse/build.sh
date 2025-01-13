@@ -3,14 +3,14 @@ TERMUX_PKG_DESCRIPTION="A Suite of Sparse matrix packages."
 TERMUX_PKG_GROUPS="science"
 TERMUX_PKG_LICENSE="GPL-3.0"
 TERMUX_PKG_MAINTAINER="@termux"
-TERMUX_PKG_VERSION="7.8.0"
-TERMUX_PKG_REVISION=1
+TERMUX_PKG_VERSION="7.8.3"
 TERMUX_PKG_SRCURL=https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/refs/tags/v${TERMUX_PKG_VERSION}.tar.gz
-TERMUX_PKG_SHA256=8ea989f36be3646d0b0eecb06218698766ca06256c0de15a64350e993bf5c5f9
+TERMUX_PKG_SHA256=ce39b28d4038a09c14f21e02c664401be73c0cb96a9198418d6a98a7db73a259
 TERMUX_PKG_DEPENDS="libandroid-complex-math, libgmp, libmpfr, libopenblas"
 TERMUX_PKG_BUILD_IN_SRC=true
 TERMUX_PKG_FORCE_CMAKE=true
 TERMUX_PKG_AUTO_UPDATE=true
+TERMUX_PKG_BREAKS="sundials (<< 7.1.1-2), octave (<< 8.4.0-6), octave-x (<< 8.4.0-5)"
 TERMUX_PKG_EXTRA_CONFIGURE_ARGS="
 -DCMAKE_SYSTEM_NAME=Linux
 -DBLA_VENDOR=OpenBLAS
@@ -97,7 +97,7 @@ lib/libklu_cholmod.so.2
 lib/liblagraph.so.1
 lib/liblagraphx.so.1
 lib/libldl.so.3
-lib/libparu.so.0
+lib/libparu.so.1
 lib/librbio.so.4
 lib/libspex.so.3
 lib/libspexpython.so.3

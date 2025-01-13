@@ -1,6 +1,6 @@
---- ./node.gyp.orig	2024-07-08 17:40:12.000000000 +0530
-+++ ./node.gyp	2024-07-10 16:25:57.143829186 +0530
-@@ -527,7 +527,8 @@
+--- ./node.gyp.orig	2024-12-02 16:39:38.000000000 +0530
++++ ./node.gyp	2024-12-17 18:14:55.840513355 +0530
+@@ -558,7 +558,8 @@
        ],
  
        'sources': [
@@ -10,7 +10,7 @@
        ],
  
        'dependencies': [
-@@ -1006,295 +1007,7 @@
+@@ -1041,298 +1042,6 @@
          },
        ],
      }, # node_lib_target_name
@@ -20,8 +20,8 @@
 -      'dependencies': [
 -        '<(node_lib_target_name)',
 -        'deps/histogram/histogram.gyp:histogram',
--        'deps/uvwasi/uvwasi.gyp:uvwasi',
 -      ],
+-
 -      'includes': [
 -        'node.gypi'
 -      ],
@@ -31,9 +31,9 @@
 -        'deps/v8/include',
 -        'deps/cares/include',
 -        'deps/uv/include',
--        'deps/uvwasi/include',
 -        'test/cctest',
 -      ],
+-
 -      'defines': [
 -        'NODE_ARCH="<(target_arch)"',
 -        'NODE_PLATFORM="<(OS)"',
@@ -109,6 +109,7 @@
 -        'deps/histogram/histogram.gyp:histogram',
 -        'deps/uvwasi/uvwasi.gyp:uvwasi',
 -        'deps/ada/ada.gyp:ada',
+-        'deps/nbytes/nbytes.gyp:nbytes',
 -      ],
 -      'includes': [
 -        'node.gypi'
@@ -151,13 +152,13 @@
 -
 -      'dependencies': [
 -        '<(node_lib_target_name)',
--        'deps/base64/base64.gyp:base64',
 -        'deps/googletest/googletest.gyp:gtest',
 -        'deps/googletest/googletest.gyp:gtest_main',
 -        'deps/histogram/histogram.gyp:histogram',
--        'deps/uvwasi/uvwasi.gyp:uvwasi',
+-        'deps/simdjson/simdjson.gyp:simdjson',
 -        'deps/simdutf/simdutf.gyp:simdutf',
 -        'deps/ada/ada.gyp:ada',
+-        'deps/nbytes/nbytes.gyp:nbytes',
 -      ],
 -
 -      'includes': [
@@ -170,7 +171,6 @@
 -        'deps/v8/include',
 -        'deps/cares/include',
 -        'deps/uv/include',
--        'deps/uvwasi/include',
 -        'test/cctest',
 -      ],
 -
@@ -181,11 +181,14 @@
 -      ],
 -
 -      'sources': [ '<@(node_cctest_sources)' ],
- 
+-
 -      'conditions': [
 -        [ 'node_use_openssl=="true"', {
 -          'defines': [
 -            'HAVE_OPENSSL=1',
+-          ],
+-          'dependencies': [
+-            'deps/ncrypto/ncrypto.gyp:ncrypto',
 -          ],
 -          'sources': [ '<@(node_cctest_openssl_sources)' ],
 -        }],
@@ -232,8 +235,8 @@
 -      'dependencies': [
 -        '<(node_lib_target_name)',
 -        'deps/histogram/histogram.gyp:histogram',
--        'deps/uvwasi/uvwasi.gyp:uvwasi',
 -        'deps/ada/ada.gyp:ada',
+-        'deps/nbytes/nbytes.gyp:nbytes',
 -      ],
 -
 -      'includes': [
@@ -242,11 +245,11 @@
 -
 -      'include_dirs': [
 -        'src',
+-        'tools',
 -        'tools/msvs/genfiles',
 -        'deps/v8/include',
 -        'deps/cares/include',
 -        'deps/uv/include',
--        'deps/uvwasi/include',
 -        'test/embedding',
 -      ],
 -
@@ -306,7 +309,7 @@
      {
        'target_name': 'node_js2c',
        'type': 'executable',
-@@ -1331,69 +1044,7 @@
+@@ -1369,73 +1078,6 @@
          }],
        ]
      },
@@ -317,8 +320,10 @@
 -      'dependencies': [
 -        '<(node_lib_target_name)',
 -        'deps/histogram/histogram.gyp:histogram',
--        'deps/uvwasi/uvwasi.gyp:uvwasi',
 -        'deps/ada/ada.gyp:ada',
+-        'deps/nbytes/nbytes.gyp:nbytes',
+-        'deps/simdjson/simdjson.gyp:simdjson',
+-        'deps/simdutf/simdutf.gyp:simdutf',
 -      ],
 -
 -      'includes': [
@@ -331,11 +336,10 @@
 -        'deps/v8/include',
 -        'deps/cares/include',
 -        'deps/uv/include',
--        'deps/uvwasi/include',
 -      ],
 -
 -      'defines': [ 'NODE_WANT_INTERNALS=1' ],
- 
+-
 -      'sources': [
 -        'src/node_snapshot_stub.cc',
 -        'tools/snapshot/node_mksnapshot.cc',
@@ -346,6 +350,9 @@
 -          'defines': [ 'NODE_MKSNAPSHOT_USE_ARRAY_LITERALS=1' ],
 -        }],
 -        [ 'node_use_openssl=="true"', {
+-          'dependencies': [
+-            'deps/ncrypto/ncrypto.gyp:ncrypto',
+-          ],
 -          'defines': [
 -            'HAVE_OPENSSL=1',
 -          ],

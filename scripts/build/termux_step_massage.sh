@@ -197,7 +197,7 @@ termux_step_massage() {
 		local LIBOMP_A=$(${TERMUX_HOST_PLATFORM}-clang -print-file-name=libomp.a)
 		[[ "${LIBOMP_SO}" == "libomp.so" ]] && echo "WARN: LIBOMP_SO=${LIBOMP_SO}, discarding" >&2 && LIBOMP_SO=""
 		[[ "${LIBOMP_A}" == "libomp.a" ]] && echo "WARN: LIBOMP_A=${LIBOMP_A}, discarding" >&2 && LIBOMP_A=""
-		local LIBOMP_SO_SYMBOLS LIBOMP_A_SYMBOLS LIBOMP_SYMBOLS
+		export LIBOMP_SO_SYMBOLS='' LIBOMP_A_SYMBOLS='' LIBOMP_SYMBOLS=''
 		[[ -n "${LIBOMP_SO}" ]] && LIBOMP_SO_SYMBOLS=$(${READELF} -s "${LIBOMP_SO}" | grep -E "GLOBAL[[:space:]]+DEFAULT" | grep -vE "[[:space:]]UND[[:space:]]" | grep -vE "[[:space:]]sizes$" | awk '{ print $8 }')
 		[[ -n "${LIBOMP_A}" ]] && LIBOMP_A_SYMBOLS=$(${READELF} -s "${LIBOMP_A}" | grep -E "GLOBAL[[:space:]]+DEFAULT" | grep -vE "[[:space:]]UND[[:space:]]" | grep -vE "[[:space:]]sizes$" | awk '{ print $8 }')
 		LIBOMP_SYMBOLS=$(echo -e "${LIBOMP_SO_SYMBOLS}\n${LIBOMP_A_SYMBOLS}" | sort | uniq)
@@ -312,7 +312,7 @@ termux_step_massage() {
 			echo "INFO: Found ${c} files with OpenMP symbols after exclusion"
 			[[ "${c}" -gt "${numberOfValid}" ]] && termux_error_exit "${c} > ${numberOfValid}"
 		fi
-		if [[ -n "${depend_libomp_so}" ]]; then
+		if [[ -n "${depend_libomp_so}" && "${TERMUX_PKG_NO_OPENMP_CHECK}" != "true" ]]; then
 			echo "ERROR: Found files depend on libomp.so" >&2
 			echo "ERROR: Showing result" >&2
 			local t0=$(get_epoch)

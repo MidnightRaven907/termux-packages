@@ -6,7 +6,7 @@ TERMUX_PKG_VERSION=(1.30.0)
 TERMUX_PKG_VERSION+=(14.0.3)  # LLVM version
 TERMUX_PKG_VERSION+=(2.100.1) # TOOLS version
 TERMUX_PKG_VERSION+=(1.30.0)  # DUB version
-
+TERMUX_PKG_REVISION=2
 TERMUX_PKG_SRCURL=(https://github.com/ldc-developers/ldc/releases/download/v${TERMUX_PKG_VERSION}/ldc-${TERMUX_PKG_VERSION}-src.tar.gz
                    https://github.com/ldc-developers/llvm-project/releases/download/ldc-v${TERMUX_PKG_VERSION[1]}/llvm-${TERMUX_PKG_VERSION[1]}.src.tar.xz
                    https://github.com/llvm/llvm-project/releases/download/llvmorg-${TERMUX_PKG_VERSION[1]}/libunwind-${TERMUX_PKG_VERSION[1]}.src.tar.xz
@@ -79,7 +79,7 @@ termux_step_host_build() {
 
 # Just before CMake invokation for LLVM:
 termux_step_pre_configure() {
-	PATH=$TERMUX_PREFIX/opt/binutils/cross/$TERMUX_HOST_PLATFORM/bin:$PATH
+	export PATH="$TERMUX_PREFIX/opt/binutils/cross/$TERMUX_HOST_PLATFORM/bin:$PATH"
 
 	LLVM_INSTALL_DIR=$TERMUX_PKG_BUILDDIR/llvm-install
 	TERMUX_PKG_EXTRA_CONFIGURE_ARGS+=" -DCMAKE_INSTALL_PREFIX=$LLVM_INSTALL_DIR"
@@ -189,7 +189,7 @@ termux_step_make() {
 	if [ $TERMUX_ARCH = arm ]; then export DFLAGS="$DFLAGS -L--fix-cortex-a8"; fi
 
 	# https://github.com/termux/termux-packages/issues/7188
-	DFLAGS+=" -L-rpath=$TERMUX_PREFIX/lib"
+	DFLAGS+=" -L--enable-new-dtags -L-rpath=$TERMUX_PREFIX/lib"
 
 	cd  $TERMUX_PKG_SRCDIR/dlang-tools
 	$DMD -w -de -dip1000 rdmd.d -of=$TERMUX_PKG_BUILDDIR/bin/rdmd

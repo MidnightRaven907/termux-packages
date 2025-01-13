@@ -1,48 +1,27 @@
-TERMUX_PKG_HOMEPAGE=https://www.mono-project.com/
-TERMUX_PKG_DESCRIPTION="Cross platform, open source .NET framework"
+TERMUX_PKG_HOMEPAGE=https://gitlab.winehq.org/mono/mono
+TERMUX_PKG_DESCRIPTION="Framework Mono"
 TERMUX_PKG_LICENSE="custom"
 TERMUX_PKG_LICENSE_FILE="LICENSE"
 TERMUX_PKG_MAINTAINER="@termux"
-TERMUX_PKG_VERSION=6.12.0.199
-TERMUX_PKG_REVISION=1
-TERMUX_PKG_SRCURL=https://download.mono-project.com/sources/mono/mono-${TERMUX_PKG_VERSION}.tar.xz
-TERMUX_PKG_SHA256=c0850d545353a6ba2238d45f0914490c6a14a0017f151d3905b558f033478ef5
-TERMUX_PKG_DEPENDS="krb5, mono-libs, zlib"
+TERMUX_PKG_VERSION="6.12.0.206"
+TERMUX_PKG_SRCURL=git+https://gitlab.winehq.org/mono/mono
+TERMUX_PKG_GIT_BRANCH=mono-${TERMUX_PKG_VERSION}
+TERMUX_PKG_DEPENDS="krb5, zlib"
 TERMUX_PKG_HOSTBUILD=true
+# https://github.com/mono/mono/issues/21796
 TERMUX_PKG_AUTO_UPDATE=true
 TERMUX_PKG_EXTRA_CONFIGURE_ARGS="
 --disable-btls
 --without-ikvm-native
 "
 
-termux_pkg_auto_update() {
-	local e=0
-	local api_url="https://download.mono-project.com/sources/mono"
-	local api_url_r=$(curl -s "${api_url}/")
-	local r1=$(echo "${api_url_r}" | sed -nE 's/.*mono-(.*).tar.*/\1/p' | sort -V)
-	local latest_version=$(echo "${r1}" | tail -n1)
-
-	[[ -z "${api_url_r}" ]] && e=1
-	[[ -z "${r1}" ]] && e=1
-	[[ -z "${latest_version}" ]] && e=1
-	if [[ "${e}" != 0 ]]; then
-		cat <<- EOL >&2
-		WARN: Auto update failure!
-		api_url_r=${api_url_r}
-		r1=${r1}
-		latest_version=${latest_version}
-		EOL
-		return
-	fi
-
-	termux_pkg_upgrade_version "${latest_version}"
-}
-
-termux_step_post_get_source() {
-	rm -f external/bdwgc/config.status
-}
-
 termux_step_host_build() {
+	termux_setup_cmake
+
+	pushd $TERMUX_PKG_SRCDIR
+	NOCONFIGURE=1 ./autogen.sh
+	popd
+
 	local _PREFIX_FOR_BUILD=$TERMUX_PKG_HOSTBUILD_DIR/prefix
 	mkdir -p $_PREFIX_FOR_BUILD
 
@@ -53,10 +32,17 @@ termux_step_host_build() {
 }
 
 termux_step_pre_configure() {
+	# this is a workaround for build-all.sh issue
+	TERMUX_PKG_DEPENDS+=", mono-libs"
+
+	termux_setup_cmake
+
 	if [ "$TERMUX_ARCH" == "arm" ]; then
 		CFLAGS="${CFLAGS//-mthumb/}"
 	fi
 	LDFLAGS+=" -lgssapi_krb5"
+
+	NOCONFIGURE=1 ./autogen.sh
 }
 
 termux_step_post_make_install() {

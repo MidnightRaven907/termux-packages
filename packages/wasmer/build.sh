@@ -3,9 +3,9 @@ TERMUX_PKG_DESCRIPTION="A fast and secure WebAssembly runtime"
 TERMUX_PKG_LICENSE="MIT"
 TERMUX_PKG_LICENSE_FILE="ATTRIBUTIONS, LICENSE"
 TERMUX_PKG_MAINTAINER="@termux"
-TERMUX_PKG_VERSION="4.3.5"
-TERMUX_PKG_SRCURL=https://github.com/wasmerio/wasmer/archive/v${TERMUX_PKG_VERSION}.tar.gz
-TERMUX_PKG_SHA256=1663a14be85921bc587941e845ed87fa9423998d7481a3b546b77ec7851c79ce
+TERMUX_PKG_VERSION="5.0.4"
+TERMUX_PKG_SRCURL=https://github.com/wasmerio/wasmer/archive/refs/tags/v${TERMUX_PKG_VERSION}.tar.gz
+TERMUX_PKG_SHA256=e6f0df11dd4647fa3d9177ed298a6e3afd2b5be6ea4494c00c2074c90681ad27
 TERMUX_PKG_BUILD_IN_SRC=true
 TERMUX_PKG_NO_STATICSPLIT=true
 TERMUX_PKG_AUTO_UPDATE=true
@@ -18,12 +18,15 @@ termux_step_pre_configure() {
 	# https://github.com/rust-lang/rfcs/issues/2629
 	# https://github.com/rust-lang/rust/issues/46651
 	# https://github.com/termux/termux-packages/issues/8029
-	RUSTFLAGS+=" -C link-arg=$(${CC} -print-libgcc-file-name)"
+	local env_host=$(printf $CARGO_TARGET_NAME | tr a-z A-Z | sed s/-/_/g)
+	export CARGO_TARGET_${env_host}_RUSTFLAGS+=" -C link-arg=$(${CC} -print-libgcc-file-name)"
 	export WASMER_INSTALL_PREFIX="${TERMUX_PREFIX}"
 	termux_setup_rust
 }
 
 termux_step_make() {
+	local env_host=$(printf $CARGO_TARGET_NAME | tr a-z A-Z | sed s/-/_/g)
+
 	# https://github.com/wasmerio/wasmer/blob/master/Makefile
 	# Makefile only does host builds
 	# Dropping host build due to https://github.com/wasmerio/wasmer/issues/2822
@@ -64,7 +67,7 @@ termux_step_make() {
 		--features "wat,compiler,wasi,middlewares,webc_runner,${capi_compiler_features}"
 
 	echo "make build-wasmer-headless-minimal"
-	RUSTFLAGS="${RUSTFLAGS} -C panic=abort" \
+	export CARGO_TARGET_${env_host}_RUSTFLAGS+=" -C panic=abort"
 	cargo build \
 		--jobs "${TERMUX_PKG_MAKE_PROCESSES}" \
 		--target "${CARGO_TARGET_NAME}" \
@@ -75,7 +78,7 @@ termux_step_make() {
 		--bin wasmer-headless
 
 	echo "make build-capi-headless"
-	RUSTFLAGS="${RUSTFLAGS} -C panic=abort -C link-dead-code -C lto -O -C embed-bitcode=yes" \
+	export CARGO_TARGET_${env_host}_RUSTFLAGS+=" -C panic=abort -C link-dead-code -C lto -O -C embed-bitcode=yes"
 	cargo build \
 		--jobs "${TERMUX_PKG_MAKE_PROCESSES}" \
 		--target "${CARGO_TARGET_NAME}" \

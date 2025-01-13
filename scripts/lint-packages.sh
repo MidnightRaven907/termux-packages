@@ -202,7 +202,7 @@ lint_package() {
 
 	echo -n "Trailing whitespace check: "
 	local trailing_whitespace
-	trailing_whitespace=$(grep -Hn ' $' "$package_script")
+	trailing_whitespace=$(grep -Hn '[[:blank:]]$' "$package_script")
 	if (( ${#trailing_whitespace} )); then
 		echo -e "FAILED\n\n${trailing_whitespace}\n"
 		return 1
@@ -279,14 +279,14 @@ lint_package() {
 		echo -n "TERMUX_PKG_API_LEVEL: "
 
 			if grep -qP '^[1-9][0-9]$' <<< "$TERMUX_PKG_API_LEVEL"; then
-				if (( TERMUX_PKG_API_LEVEL < 24 || TERMUX_PKG_API_LEVEL > 28 )); then
-					echo "INVALID (allowed: number in range 24 - 28)"
+				if (( TERMUX_PKG_API_LEVEL < 24 )); then
+					echo "INVALID (allowed: number in range >= 24)"
 					pkg_lint_error=true
 				else
 					echo "PASS"
 				fi
 			else
-				echo "INVALID (allowed: number in range 24 - 28)"
+				echo "INVALID (allowed: number in range >= 24)"
 				pkg_lint_error=true
 			fi
 		fi

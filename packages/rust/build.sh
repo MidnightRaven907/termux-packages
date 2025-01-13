@@ -2,14 +2,15 @@ TERMUX_PKG_HOMEPAGE=https://www.rust-lang.org/
 TERMUX_PKG_DESCRIPTION="Systems programming language focused on safety, speed and concurrency"
 TERMUX_PKG_LICENSE="MIT"
 TERMUX_PKG_MAINTAINER="@termux"
-TERMUX_PKG_VERSION="1.80.0"
+TERMUX_PKG_VERSION="1.84.0"
 TERMUX_PKG_SRCURL=https://static.rust-lang.org/dist/rustc-${TERMUX_PKG_VERSION}-src.tar.xz
-TERMUX_PKG_SHA256=0b9ca1e2e45b8a5f0b58db140af0dc92f8311faeb0ad883c5b71a72c02dc6e80
+TERMUX_PKG_SHA256=bc2c1639f26814c7b17a323992f1e08c3b01fe88cdff9a27d951987d886e00b3
 _LLVM_MAJOR_VERSION=$(. $TERMUX_SCRIPTDIR/packages/libllvm/build.sh; echo $LLVM_MAJOR_VERSION)
 _LLVM_MAJOR_VERSION_NEXT=$((_LLVM_MAJOR_VERSION + 1))
 _LZMA_VERSION=$(. $TERMUX_SCRIPTDIR/packages/liblzma/build.sh; echo $TERMUX_PKG_VERSION)
 TERMUX_PKG_DEPENDS="clang, libc++, libllvm (<< ${_LLVM_MAJOR_VERSION_NEXT}), lld, openssl, zlib"
 TERMUX_PKG_BUILD_DEPENDS="wasi-libc"
+TERMUX_PKG_NO_REPLACE_GUESS_SCRIPTS=true
 TERMUX_PKG_NO_STATICSPLIT=true
 TERMUX_PKG_AUTO_UPDATE=true
 TERMUX_PKG_RM_AFTER_INSTALL="
@@ -32,7 +33,7 @@ termux_pkg_auto_update() {
 	local api_url2="https://forge.rust-lang.org/infra/other-installation-methods.html"
 	local api_url1_r=$(curl -Ls "${api_url1}")
 	local api_url2_r=$(curl -Ls "${api_url2}")
-	local latest_version=$(echo "${api_url1_r}" | grep "html" | sed -ne "s|.*Stable: \([0-9]*\+.\+[0-9]*\+.\+[0-9]*\) Beta:.*|\1|p")
+	local latest_version=$(echo "${api_url1_r}" | sed -ne "s|.*Stable: \([0-9]*\+.\+[0-9]*\+.\+[0-9]*\) Beta:.*|\1|p")
 	if [[ "${latest_version}" == "${TERMUX_PKG_VERSION}" ]]; then
 		echo "INFO: Already up to date."
 		return
@@ -48,7 +49,7 @@ termux_pkg_auto_update() {
 
 	local uptime_now=$(cat /proc/uptime)
 	local uptime_s="${uptime_now//.*}"
-	local uptime_h_limit=4
+	local uptime_h_limit=2
 	local uptime_s_limit=$((uptime_h_limit*60*60))
 	[[ -z "${uptime_s}" ]] && [[ "$(uname -o)" != "Android" ]] && e=1
 	[[ "${uptime_s}" == 0 ]] && [[ "$(uname -o)" != "Android" ]] && e=1
@@ -132,7 +133,7 @@ termux_step_configure() {
 	# like 30 to 40 + minutes ... so lets get it right
 
 	# upstream tests build using versions N and N-1
-	local BOOTSTRAP_VERSION=1.79.0
+	local BOOTSTRAP_VERSION=1.83.0
 	if [[ "${TERMUX_ON_DEVICE_BUILD}" == "false" ]]; then
 		if ! rustup install "${BOOTSTRAP_VERSION}"; then
 			echo "WARN: ${BOOTSTRAP_VERSION} is unavailable, fallback to stable version!"
@@ -184,6 +185,8 @@ termux_step_configure() {
 	"${AR}" rcu "${RUST_LIBDIR}/libsyncfs.a" syncfs.o
 	export CARGO_TARGET_${env_host}_RUSTFLAGS+=" -C link-arg=-l:libsyncfs.a"
 
+	export CARGO_TARGET_${env_host}_RUSTFLAGS+=" -C link-arg=-Wl,-rpath=${TERMUX_PREFIX}/lib -C link-arg=-Wl,--enable-new-dtags"
+
 	export X86_64_UNKNOWN_LINUX_GNU_OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu
 	export X86_64_UNKNOWN_LINUX_GNU_OPENSSL_INCLUDE_DIR=/usr/include
 	export PKG_CONFIG_ALLOW_CROSS=1
@@ -191,6 +194,8 @@ termux_step_configure() {
 	export CC_x86_64_unknown_linux_gnu=gcc
 	export CFLAGS_x86_64_unknown_linux_gnu="-O2"
 	export RUST_BACKTRACE=full
+
+	unset CC CFLAGS CFLAGS_${env_host} CPP CPPFLAGS CXX CXXFLAGS LD LDFLAGS PKG_CONFIG RANLIB
 }
 
 termux_step_make() {
@@ -198,17 +203,6 @@ termux_step_make() {
 }
 
 termux_step_make_install() {
-	unset CC CFLAGS CPP CPPFLAGS CXX CXXFLAGS LD LDFLAGS PKG_CONFIG RANLIB
-
-	# needed to workaround build issue that only happens on x86_64
-	# /home/runner/.termux-build/rust/build/build/bootstrap/debug/bootstrap: error while loading shared libraries: /lib/x86_64-linux-gnu/libc.so: invalid ELF header
-	if [[ "${TERMUX_ON_DEVICE_BUILD}" == "false" ]] && [[ "${TERMUX_ARCH}" == "x86_64" ]]; then
-		mv -v ${TERMUX_PREFIX}{,.tmp}
-		${TERMUX_PKG_SRCDIR}/x.py build -j ${TERMUX_PKG_MAKE_PROCESSES} --host x86_64-unknown-linux-gnu --stage 1 cargo
-		[[ -d "${TERMUX_PREFIX}" ]] && termux_error_exit "Contaminated PREFIX found:\n$(find ${TERMUX_PREFIX} | sort)"
-		mv -v ${TERMUX_PREFIX}{.tmp,}
-	fi
-
 	# install causes on device build fail to continue
 	# dist uses a lot of spaces on CI
 	local job="install"
@@ -221,7 +215,6 @@ termux_step_make_install() {
 	# error: could not document `std`
 	"${TERMUX_PKG_SRCDIR}/x.py" install -j ${TERMUX_PKG_MAKE_PROCESSES} --target wasm32-unknown-unknown --stage 1 std
 	[[ ! -e "${TERMUX_PREFIX}/share/wasi-sysroot" ]] && termux_error_exit "wasi-sysroot not found"
-	"${TERMUX_PKG_SRCDIR}/x.py" install -j ${TERMUX_PKG_MAKE_PROCESSES} --target wasm32-wasi --stage 1 std
 	"${TERMUX_PKG_SRCDIR}/x.py" install -j ${TERMUX_PKG_MAKE_PROCESSES} --target wasm32-wasip1 --stage 1 std
 	"${TERMUX_PKG_SRCDIR}/x.py" install -j ${TERMUX_PKG_MAKE_PROCESSES} --target wasm32-wasip2 --stage 1 std
 
@@ -294,4 +287,14 @@ termux_step_make_install() {
 
 	export _INCLUDED=$(echo -e "${_included}\n${_included_rlib}\n${_included_so}")
 	echo -e "INFO: _INCLUDED:\n${_INCLUDED}"
+
+	# check runpath entry
+	local cargo_readelf=$(${READELF} -d ${TERMUX_PREFIX}/bin/cargo)
+	local cargo_runpath=$(echo "${cargo_readelf}" | sed -ne "s|.*RUNPATH.*\[\(.*\)\].*|\1|p")
+	if [[ "${cargo_runpath}" != "${TERMUX_PREFIX}/lib" ]]; then
+		termux_error_exit "
+		Mismatch RUNPATH found. Check readelf output below:
+		${cargo_readelf}
+		"
+	fi
 }
