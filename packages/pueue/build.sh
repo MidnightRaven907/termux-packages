@@ -1,10 +1,12 @@
 TERMUX_PKG_HOMEPAGE=https://github.com/Nukesor/pueue
 TERMUX_PKG_DESCRIPTION="A command-line task management tool for sequential and parallel execution of long-running tasks"
-TERMUX_PKG_LICENSE="MIT"
+TERMUX_PKG_LICENSE="MIT, Apache-2.0"
+TERMUX_PKG_LICENSE_FILE="LICENSE.MIT, LICENSE.APACHE"
 TERMUX_PKG_MAINTAINER="@stevenxxiu"
-TERMUX_PKG_VERSION=3.4.1
+TERMUX_PKG_VERSION="4.0.0-rc.1"
+TERMUX_PKG_REVISION=1
 TERMUX_PKG_SRCURL=https://github.com/Nukesor/pueue/archive/refs/tags/v${TERMUX_PKG_VERSION}.tar.gz
-TERMUX_PKG_SHA256=868710de128db49e0a0c4ddee127dfc0e19b20cbdfd4a9d53d5ed792c5538244
+TERMUX_PKG_SHA256=4005cdb038b0fe84cf25b46551920b14cedcbea265b6dac068b5ea4261ab4e2d
 TERMUX_PKG_BUILD_IN_SRC=true
 TERMUX_PKG_AUTO_UPDATE=true
 TERMUX_PKG_SERVICE_SCRIPT=("pueued" 'exec pueued 2>&1')
@@ -29,12 +31,12 @@ termux_step_make_install() {
 
 termux_step_post_make_install() {
 	# Make a placeholder for shell-completions (to be filled with postinst)
-	mkdir -p "${TERMUX_PREFIX}"/share/bash-completions/completions
+	mkdir -p "${TERMUX_PREFIX}"/share/bash-completion/completions
 	mkdir -p "${TERMUX_PREFIX}"/share/elvish/lib
 	mkdir -p "${TERMUX_PREFIX}"/share/fish/vendor_completions.d
 	mkdir -p "${TERMUX_PREFIX}"/share/nushell/vendor/autoload
 	mkdir -p "${TERMUX_PREFIX}"/share/zsh/site-functions
-	touch "${TERMUX_PREFIX}"/share/bash-completions/completions/pueue
+	touch "${TERMUX_PREFIX}"/share/bash-completion/completions/pueue
 	touch "${TERMUX_PREFIX}"/share/elvish/lib/pueue.elv
 	touch "${TERMUX_PREFIX}"/share/fish/vendor_completions.d/pueue.fish
 	touch "${TERMUX_PREFIX}"/share/nushell/vendor/autoload/pueue.nu
@@ -45,10 +47,13 @@ termux_step_create_debscripts() {
 	cat <<-EOF >./postinst
 		#!${TERMUX_PREFIX}/bin/sh
 
-		pueue completions bash > ${TERMUX_PREFIX}/share/bash-completions/completions/pueue
+		pueue completions bash > ${TERMUX_PREFIX}/share/bash-completion/completions/pueue
 		pueue completions elvish > ${TERMUX_PREFIX}/share/elvish/lib/pueue.elv
 		pueue completions fish > ${TERMUX_PREFIX}/share/fish/vendor_completions.d/pueue.fish
 		pueue completions nushell > ${TERMUX_PREFIX}/share/nushell/vendor/autoload/pueue.nu
 		pueue completions zsh > ${TERMUX_PREFIX}/share/zsh/site-functions/_pueue
 	EOF
+	if [ "$TERMUX_PACKAGE_FORMAT" = "pacman" ]; then
+		echo "post_install" > postupg
+	fi
 }

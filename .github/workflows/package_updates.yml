@@ -1,6 +1,14 @@
 name: Package updates
 
 on:
+  push:
+    branches:
+    - '**'
+    - '!master'
+    paths:
+    - 'packages/**'
+    - 'root-packages/**'
+    - 'x11-packages/**'
   pull_request:
     paths:
     - 'packages/**'
@@ -21,7 +29,7 @@ jobs:
   update-packages-dry-run:
     permissions:
       contents: read
-    if: github.event_name == 'pull_request' && github.repository == 'termux/termux-packages'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Clone repository
@@ -121,7 +129,7 @@ jobs:
     permissions:
       issues: write
       contents: write
-    if: github.event_name != 'pull_request' && github.repository == 'termux/termux-packages'
+    if: github.event_name != 'pull_request' && github.event_name != 'push' && github.repository == 'termux/termux-packages'
     runs-on: ubuntu-latest
     steps:
       - name: Clone repository
@@ -132,7 +140,7 @@ jobs:
       - name: Free additional disk space
         run: |
           sudo apt purge -yq $(dpkg -l | grep '^ii' | awk '{ print $2 }' | grep -P '(aspnetcore|cabal-|dotnet-|ghc-|libmono|mongodb-|mysql-|php)') \
-            firefox google-chrome-stable google-cloud-cli microsoft-edge-stable mono-devel mono-runtime-common monodoc-manual powershell ruby
+            firefox google-chrome-stable microsoft-edge-stable mono-devel mono-runtime-common monodoc-manual ruby
           sudo apt autoremove -yq
           sudo apt clean
           sudo rm -fr /opt/ghc /opt/hostedtoolcache /usr/lib/node_modules /usr/local/share/boost /usr/share/dotnet /usr/share/swift
@@ -143,12 +151,16 @@ jobs:
           CREATE_ISSUE: "true"
           GIT_COMMIT_PACKAGES: "true"
           GIT_PUSH_PACKAGES: "true"
+          MANUAL_INPUT_PACKAGES: ${{ github.event.inputs.packages }}
         run: |
           git config --global user.name "Termux Github Actions"
           git config --global user.email "contact@termux.dev"
 
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            ./scripts/bin/update-packages ${{ github.event.inputs.packages }}
+            # Ensure MANUAL_INPUT_PACKAGES is newline free, and put it
+            # into an array
+            read -a PACKAGES <<< "${MANUAL_INPUT_PACKAGES//$'\n'/ }"
+            ./scripts/bin/update-packages "${PACKAGES[@]}"
           else
             ./scripts/bin/update-packages "@all"
           fi

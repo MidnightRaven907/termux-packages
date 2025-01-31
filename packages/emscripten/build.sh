@@ -2,8 +2,7 @@ TERMUX_PKG_HOMEPAGE=https://emscripten.org
 TERMUX_PKG_DESCRIPTION="Emscripten: An LLVM-to-WebAssembly Compiler"
 TERMUX_PKG_LICENSE="MIT"
 TERMUX_PKG_MAINTAINER="@termux"
-TERMUX_PKG_VERSION="3.1.64"
-TERMUX_PKG_REVISION=1
+TERMUX_PKG_VERSION="4.0.1"
 TERMUX_PKG_SRCURL=git+https://github.com/emscripten-core/emscripten
 TERMUX_PKG_GIT_BRANCH=${TERMUX_PKG_VERSION}
 TERMUX_PKG_DEPENDS="nodejs-lts | nodejs, python"
@@ -34,6 +33,7 @@ opt/emscripten-llvm/bin/clang-pseudo
 opt/emscripten-llvm/bin/clang-refactor
 opt/emscripten-llvm/bin/clang-rename
 opt/emscripten-llvm/bin/clang-repl
+opt/emscripten-llvm/bin/clang-sycl-linker
 opt/emscripten-llvm/bin/diagtool
 opt/emscripten-llvm/bin/git-clang-format
 opt/emscripten-llvm/bin/hmaptool
@@ -45,6 +45,7 @@ opt/emscripten-llvm/bin/llvm-mca
 opt/emscripten-llvm/bin/llvm-ml
 opt/emscripten-llvm/bin/llvm-pdbutil
 opt/emscripten-llvm/bin/llvm-profdata
+opt/emscripten-llvm/bin/llvm-profgen
 opt/emscripten-llvm/bin/llvm-rc
 opt/emscripten-llvm/bin/nvptx-arch
 opt/emscripten-llvm/lib/libclang.so*
@@ -54,13 +55,13 @@ opt/emscripten/LICENSE
 
 # https://github.com/emscripten-core/emscripten/issues/11362
 # can switch to stable LLVM to save space once above is fixed
-_LLVM_COMMIT=4d8e42ea6a89c73f90941fd1b6e899912e31dd34
-_LLVM_TGZ_SHA256=149721d58bd9e0f93f68750ce0520001daf06480b2168a2d615c7879bba37563
+_LLVM_COMMIT=a32e36faf84bd7da3df0c7d50bb9020568128417
+_LLVM_TGZ_SHA256=ef59e10e9df3aa5eb4152871c170be719469e691951c52b310cd0185b7fbde7b
 
 # https://github.com/emscripten-core/emscripten/issues/12252
 # upstream says better bundle the right binaryen revision for now
-_BINARYEN_COMMIT=a8066e6618b93ea101e82b64690b9b62d7562609
-_BINARYEN_TGZ_SHA256=7c3b34b9c1be3de7d2de04fb0748dc5a69aaa33e50b3a655655c3d3475ae645b
+_BINARYEN_COMMIT=e4bfcd2a06db0640bfbf1654f575239ecab72443
+_BINARYEN_TGZ_SHA256=ca7bac829b4f5ef26af12f6a9da2a1baacf1d1b9eea67d8dbec0122a7ff73b72
 
 # https://github.com/emscripten-core/emsdk/blob/main/emsdk.py
 # https://chromium.googlesource.com/emscripten-releases/+/refs/heads/main/src/build.py

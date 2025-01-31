@@ -65,14 +65,10 @@ PACKAGES+=" xmlto"
 PACKAGES+=" xmltoman"
 
 # Needed by python modules (e.g. asciinema) and some build systems.
-PACKAGES+=" python3.9"
-PACKAGES+=" python3.10"
-PACKAGES+=" python3.11"
 PACKAGES+=" python3-pip"
 PACKAGES+=" python3-setuptools"
 PACKAGES+=" python-wheel-common"
-PACKAGES+=" python3.10-venv"
-PACKAGES+=" python3.11-venv"
+PACKAGES+=" python3.12-venv"
 
 # Needed by package bc.
 PACKAGES+=" ed"
@@ -99,7 +95,6 @@ PACKAGES+=" gengetopt"
 PACKAGES+=" libdbus-1-dev"
 
 # Needed by package below.
-PACKAGES+=" clang-15"
 PACKAGES+=" libelf-dev"
 
 # Needed by package ghostscript.
@@ -150,9 +145,13 @@ PACKAGES+=" composer"
 
 # Needed by package rust.
 PACKAGES+=" libssl-dev" # Needed to build Rust
-PACKAGES+=" llvm-17-dev"
-PACKAGES+=" llvm-17-tools"
-PACKAGES+=" clang-17"
+PACKAGES+=" llvm-18-dev"
+PACKAGES+=" llvm-18-tools"
+PACKAGES+=" clang-18"
+
+# Needed by librusty-v8
+PACKAGES+=" libclang-rt-17-dev"
+PACKAGES+=" libclang-rt-17-dev:i386"
 
 # Needed for package smalltalk.
 PACKAGES+=" libsigsegv-dev"
@@ -192,7 +191,7 @@ PACKAGES+=" rsync"
 PACKAGES+=" wget"
 
 # Needed by codeblocks
-PACKAGES+=" libwxgtk3.0-gtk3-dev"
+PACKAGES+=" libwxgtk3.2-dev"
 PACKAGES+=" libgtk-3-dev"
 
 # Needed by packages in unstable repository.
@@ -222,7 +221,7 @@ PACKAGES+=" itstool"
 PACKAGES+=" libdbus-glib-1-dev-bin"
 PACKAGES+=" libgdk-pixbuf2.0-dev"
 PACKAGES+=" libwayland-dev"
-PACKAGES+=" python-setuptools"
+PACKAGES+=" python3-html5lib"
 PACKAGES+=" python3-xcbgen"
 PACKAGES+=" sassc"
 PACKAGES+=" texlive-extra-utils"
@@ -268,9 +267,6 @@ PACKAGES+=" libxft-dev"
 PACKAGES+=" libxt-dev"
 PACKAGES+=" xbitmaps"
 
-# Needed by proxmark3/proxmark3-git
-PACKAGES+=" gcc-arm-none-eabi"
-
 # Needed by pypy
 PACKAGES+=" qemu-user-static"
 
@@ -310,6 +306,15 @@ PACKAGES+=" patchelf"
 # Needed by lldb for python integration
 PACKAGES+=" swig"
 
+# Needed by binutils-cross
+PACKAGES+=" libzstd-dev"
+
+# Needed by tree-sitter-c
+PACKAGES+=" tree-sitter-cli"
+
+# Needed by wlroots
+PACKAGES+=" glslang-tools"
+
 # Do not require sudo if already running as root.
 SUDO="sudo"
 if [ "$(id -u)" = "0" ]; then
@@ -323,24 +328,13 @@ $SUDO dpkg --add-architecture i386
 $SUDO cp $(dirname "$(realpath "$0")")/llvm-snapshot.gpg.key /etc/apt/trusted.gpg.d/apt.llvm.org.asc
 $SUDO chmod a+r /etc/apt/trusted.gpg.d/apt.llvm.org.asc
 {
-	echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main"
+	echo "deb [arch=amd64] http://apt.llvm.org/noble/ llvm-toolchain-noble-18 main"
 } | $SUDO tee /etc/apt/sources.list.d/apt-llvm-org.list > /dev/null
-
-# Add ppa repo to be able to get openjdk-17 on ubuntu 22.04
-$SUDO cp $(dirname "$(realpath "$0")")/openjdk-r-ppa.gpg /etc/apt/trusted.gpg.d/
-$SUDO chmod a+r /etc/apt/trusted.gpg.d/openjdk-r-ppa.gpg
-echo "deb https://ppa.launchpadcontent.net/openjdk-r/ppa/ubuntu/ jammy main" | $SUDO tee /etc/apt/sources.list.d/openjdk-r-ubuntu-ppa-jammy.list > /dev/null
 
 $SUDO apt-get -yq update
 
 $SUDO env DEBIAN_FRONTEND=noninteractive \
 	apt-get install -yq --no-install-recommends $PACKAGES
-
-# Pip for python2.
-curl -L --output /tmp/py2-get-pip.py https://bootstrap.pypa.io/pip/2.7/get-pip.py
-$SUDO python2 /tmp/py2-get-pip.py
-rm -f /tmp/py2-get-pip.py
-$SUDO rm -f /usr/local/bin/pip
 
 $SUDO locale-gen --purge en_US.UTF-8
 echo -e 'LANG="en_US.UTF-8"\nLANGUAGE="en_US:en"\n' | $SUDO tee -a /etc/default/locale
@@ -348,4 +342,27 @@ echo -e 'LANG="en_US.UTF-8"\nLANGUAGE="en_US:en"\n' | $SUDO tee -a /etc/default/
 . $(dirname "$(realpath "$0")")/properties.sh
 $SUDO mkdir -p $TERMUX_PREFIX
 $SUDO chown -R $(whoami) /data
-$SUDO ln -sf /data/data/com.termux/files/usr/opt/bionic-host /system
+$SUDO ln -sf /data/data/com.termux/files/usr/opt/aosp /system
+
+# Install newer pkg-config then what ubuntu provides, as the stock
+# ubuntu version has performance problems with at least protobuf:
+PKGCONF_VERSION=2.3.0
+HOST_TRIPLET=$(gcc -dumpmachine)
+PKG_CONFIG_DIRS=$(grep DefaultSearchPaths: /usr/share/pkgconfig/personality.d/${HOST_TRIPLET}.personality | cut -d ' ' -f 2)
+SYSTEM_LIBDIRS=$(grep SystemLibraryPaths: /usr/share/pkgconfig/personality.d/${HOST_TRIPLET}.personality | cut -d ' ' -f 2)
+mkdir -p /tmp/pkgconf-build
+cd /tmp/pkgconf-build
+curl -O https://distfiles.ariadne.space/pkgconf/pkgconf-${PKGCONF_VERSION}.tar.xz
+tar xf pkgconf-${PKGCONF_VERSION}.tar.xz
+cd pkgconf-${PKGCONF_VERSION}
+echo "SYSTEM_LIBDIRS: $SYSTEM_LIBDIRS"
+echo "PKG_CONFIG_DIRS: $PKG_CONFIG_DIRS"
+./configure --prefix=/usr \
+	--with-system-libdir=${SYSTEM_LIBDIRS} \
+	--with-pkg-config-dir=${PKG_CONFIG_DIRS}
+make
+$SUDO make install
+cd -
+rm -Rf /tmp/pkgconf-build
+# Prevent package from being upgraded and overwriting our manual installation:
+$SUDO apt-mark hold pkgconf

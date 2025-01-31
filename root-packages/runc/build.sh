@@ -2,13 +2,18 @@ TERMUX_PKG_HOMEPAGE=https://www.opencontainers.org/
 TERMUX_PKG_DESCRIPTION="A tool for spawning and running containers according to the OCI specification"
 TERMUX_PKG_LICENSE="Apache-2.0"
 TERMUX_PKG_MAINTAINER="@termux"
-TERMUX_PKG_VERSION="1.1.13"
+TERMUX_PKG_VERSION="1.2.4"
 TERMUX_PKG_SRCURL=https://github.com/opencontainers/runc/archive/v${TERMUX_PKG_VERSION}.tar.gz
-TERMUX_PKG_SHA256=789d5749a08ef1fbe5d1999b67883206a68a4e58e6ca0151c411d678f3480b25
+TERMUX_PKG_SHA256=9785c144c97974b52b6091b7a79168b73681ff574bc8438b44f3f5f8c112f171
 TERMUX_PKG_AUTO_UPDATE=true
-TERMUX_PKG_DEPENDS="libseccomp"
+TERMUX_PKG_BUILD_DEPENDS="libseccomp-static"
 
 termux_step_make() {
+	${CC} -c -o stubs.o "$TERMUX_PKG_BUILDER_DIR/stubs.c"
+	${AR} rcs liblog.a stubs.o
+
+	export CGO_LDFLAGS="-L$TERMUX_PKG_BUILDDIR"
+
 	termux_setup_golang
 
 	export GOPATH="${PWD}/go"
@@ -16,7 +21,7 @@ termux_step_make() {
 	mkdir -p "${GOPATH}/src/github.com/opencontainers"
 	ln -sf "${TERMUX_PKG_SRCDIR}" "${GOPATH}/src/github.com/opencontainers/runc"
 
-	cd "${GOPATH}/src/github.com/opencontainers/runc" && make
+	cd "${GOPATH}/src/github.com/opencontainers/runc" && make static
 }
 
 termux_step_make_install() {

@@ -3,7 +3,7 @@ TERMUX_PKG_DESCRIPTION="Light-weight cryptographic and SSL/TLS library"
 TERMUX_PKG_LICENSE="Apache-2.0"
 TERMUX_PKG_MAINTAINER="@termux"
 TERMUX_PKG_SRCURL=git+https://github.com/ARMmbed/mbedtls
-TERMUX_PKG_VERSION="3.6.0"
+TERMUX_PKG_VERSION="3.6.2"
 TERMUX_PKG_GIT_BRANCH=mbedtls-$TERMUX_PKG_VERSION
 TERMUX_PKG_BREAKS="mbedtls-dev"
 TERMUX_PKG_REPLACES="mbedtls-dev"
@@ -25,7 +25,7 @@ termux_step_post_get_source() {
 
 	local f
 	for f in crypto tls x509; do
-		local v="$(sed -n 's/^SOEXT_'${f^^}'?=so\.//p' library/Makefile)"
+		local v="$(sed -n 's/^SOEXT_'${f@U}'?=so\.//p' library/Makefile)"
 		if [ "$(eval echo \$_SOVER_${f})" != "${v}" ]; then
 			termux_error_exit "Error: SOVERSION guard check failed for libmbed${f}.so."
 		fi

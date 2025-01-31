@@ -2,10 +2,10 @@ TERMUX_PKG_HOMEPAGE=https://github.com/KhronosGroup/Vulkan-Tools
 TERMUX_PKG_DESCRIPTION="Vulkan Tools and Utilities"
 TERMUX_PKG_LICENSE="Apache-2.0"
 TERMUX_PKG_MAINTAINER="@termux"
-TERMUX_PKG_VERSION="1.3.292"
+TERMUX_PKG_VERSION="1.4.306"
 TERMUX_PKG_SRCURL=https://github.com/KhronosGroup/Vulkan-Tools/archive/refs/tags/v${TERMUX_PKG_VERSION}.tar.gz
-TERMUX_PKG_SHA256=8aafb6da480ea45a1ef660f3a74a8c831e3a8e71b52016bf214609e9a5a4cf64
-TERMUX_PKG_DEPENDS="libc++, libx11, libxcb, libwayland, vulkan-loader"
+TERMUX_PKG_SHA256=8e3c3df74fa8e6408cbb772d20012c3fdf0bf1b3e363e18e909b6c99d5b489a2
+TERMUX_PKG_DEPENDS="libc++, libwayland, libx11, libxcb, vulkan-loader"
 TERMUX_PKG_BUILD_DEPENDS="libwayland-protocols, vulkan-headers (=${TERMUX_PKG_VERSION}), vulkan-volk"
 TERMUX_PKG_ANTI_BUILD_DEPENDS="vulkan-loader"
 TERMUX_PKG_AUTO_UPDATE=true
@@ -18,19 +18,9 @@ TERMUX_PKG_EXTRA_CONFIGURE_ARGS="
 -DBUILD_WSI_WAYLAND_SUPPORT=ON
 -DBUILD_WSI_XCB_SUPPORT=ON
 -DBUILD_WSI_XLIB_SUPPORT=ON
--DPython3_EXECUTABLE=$(command -v python3)
 -DVULKAN_HEADERS_INSTALL_DIR=${TERMUX_PREFIX}
 "
 
 termux_step_pre_configure() {
-	local _WRAPPER_BIN="${TERMUX_PKG_BUILDDIR}/_wrapper/bin"
-	mkdir -p "${_WRAPPER_BIN}"
-	if [[ "${TERMUX_ON_DEVICE_BUILD}" == "false" ]]; then
-		sed "s|^export PKG_CONFIG_LIBDIR=|export PKG_CONFIG_LIBDIR=${TERMUX_PREFIX}/opt/libwayland/cross/lib/x86_64-linux-gnu/pkgconfig:|" \
-			"${TERMUX_STANDALONE_TOOLCHAIN}/bin/pkg-config" \
-			> "${_WRAPPER_BIN}/pkg-config"
-		chmod +x "${_WRAPPER_BIN}/pkg-config"
-		export PKG_CONFIG="${_WRAPPER_BIN}/pkg-config"
-	fi
-	export PATH="${_WRAPPER_BIN}:${PATH}"
+	termux_setup_wayland_cross_pkg_config_wrapper
 }
