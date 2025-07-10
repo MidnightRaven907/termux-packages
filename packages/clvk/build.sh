@@ -2,10 +2,10 @@ TERMUX_PKG_HOMEPAGE=https://github.com/kpet/clvk
 TERMUX_PKG_DESCRIPTION="Experimental implementation of OpenCL on Vulkan"
 TERMUX_PKG_LICENSE="Apache-2.0"
 TERMUX_PKG_MAINTAINER="@termux"
-_COMMIT=a91d6a8092592f99971e6cd68fed8ecd57f19700
-_COMMIT_DATE=20250121
-_COMMIT_TIME=215854
-TERMUX_PKG_VERSION="0.0.20250121.215854"
+_COMMIT=826402c25dc716f9b06cc52cff4a1298830af97f
+_COMMIT_DATE=20250703
+_COMMIT_TIME=065636
+TERMUX_PKG_VERSION="0.0.20250703.065636"
 TERMUX_PKG_SRCURL=git+https://github.com/kpet/clvk
 TERMUX_PKG_GIT_BRANCH=main
 TERMUX_PKG_BUILD_DEPENDS="vulkan-headers, vulkan-loader-android"
@@ -122,10 +122,15 @@ termux_step_host_build() {
 		-C "${TERMUX_PKG_HOSTBUILD_DIR}/llvm" \
 		-j "${TERMUX_PKG_MAKE_PROCESSES}" \
 		llvm-tblgen clang-tblgen
+
+	local _host_clang_base="$TERMUX_HOST_LLVM_BASE_DIR"
 	cmake \
 		-G Ninja \
 		-B "${TERMUX_PKG_HOSTBUILD_DIR}/libclc" \
 		-S "${TERMUX_PKG_SRCDIR}/external/clspv/third_party/llvm/libclc" \
+		-DLLVM_DIR="$_host_clang_base/cmake" \
+		-DCMAKE_C_COMPILER="$_host_clang_base/bin/clang" \
+		-DCMAKE_CXX_COMPILER="$_host_clang_base/bin/clang++" \
 		-DLIBCLC_TARGETS_TO_BUILD="clspv--;clspv64--"
 	ninja \
 		-C "${TERMUX_PKG_HOSTBUILD_DIR}/libclc" \

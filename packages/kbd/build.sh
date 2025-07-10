@@ -2,9 +2,10 @@ TERMUX_PKG_HOMEPAGE="https://kbd-project.org/"
 TERMUX_PKG_DESCRIPTION="KBD's showkey utility for examining keycodes"
 TERMUX_PKG_LICENSE="GPL-2.0"
 TERMUX_PKG_MAINTAINER="@termux"
-TERMUX_PKG_VERSION=2.6.4
+TERMUX_PKG_VERSION="2.8.0"
 TERMUX_PKG_SRCURL=https://mirrors.edge.kernel.org/pub/linux/utils/kbd/kbd-${TERMUX_PKG_VERSION}.tar.gz
-TERMUX_PKG_SHA256=99b2a39e1c5475ffe8e1bb2004345cb8849c3cc1aedbe541beee2d45e270975f
+TERMUX_PKG_SHA256=6ac74113b08ffe2bbc31690c51d5a627399ebf070907a0a55468563ea965836a
+TERMUX_PKG_AUTO_UPDATE=true
 TERMUX_PKG_EXTRA_CONFIGURE_ARGS="--disable-vlock"
 
 # We're only keeping:
@@ -32,3 +33,7 @@ share/man/man1/setleds.1 share/man/man1/kbdinfo.1
 share/consolefonts share/consoletrans
 share/keymaps share/unimaps
 '
+
+termux_step_pre_configure() {
+	CPPFLAGS+=" -Dprogram_invocation_short_name=getprogname\(\)"
+}

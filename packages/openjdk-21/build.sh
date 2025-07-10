@@ -2,9 +2,10 @@ TERMUX_PKG_HOMEPAGE=https://openjdk.java.net
 TERMUX_PKG_DESCRIPTION="Java development kit and runtime"
 TERMUX_PKG_LICENSE="GPL-2.0"
 TERMUX_PKG_MAINTAINER="@termux"
-TERMUX_PKG_VERSION="21.0.6"
+TERMUX_PKG_VERSION="21.0.7"
+TERMUX_PKG_REVISION=2
 TERMUX_PKG_SRCURL=https://github.com/openjdk/jdk21u/archive/refs/tags/jdk-${TERMUX_PKG_VERSION}-ga.tar.gz
-TERMUX_PKG_SHA256=9fec30f33b3a85c982cf8c1a6d99d296b2eef4e627e8586c3e42b9692983f5e9
+TERMUX_PKG_SHA256=d8637e7d6fece0757b7fada49d32d0b3334a15a110445acef8cfea64b4672ca2
 TERMUX_PKG_AUTO_UPDATE=true
 TERMUX_PKG_DEPENDS="libandroid-shmem, libandroid-spawn, libiconv, libjpeg-turbo, zlib, littlecms"
 TERMUX_PKG_BUILD_DEPENDS="cups, fontconfig, libxrandr, libxt, xorgproto"
@@ -20,8 +21,9 @@ __jvm_features="link-time-opt"
 
 termux_pkg_auto_update() {
 	# based on `termux_github_api_get_tag.sh`
-	# fetch latest tags
-	local latest_tags="$(curl -d "$(cat <<-EOF | tr '\n' ' '
+	# fetch newest tags
+	local newest_tags newest_tag
+	newest_tags="$(curl -d "$(cat <<-EOF | tr '\n' ' '
 	{
 		"query": "query {
 			repository(owner: \"openjdk\", name: \"jdk21u\") {
@@ -43,14 +45,10 @@ termux_pkg_auto_update() {
 		https://api.github.com/graphql \
 		| jq '.data.repository.refs.edges[].node.name')"
 	# filter only tags having "-ga" and extract only raw version.
-	local latest_tag="$(echo "$latest_tags" \
-		| grep -P "\d+\.\d+\.\d+-ga" \
-		| grep -oP "\d+\.\d+\.\d+")"
-	# we need only one result from the top.
-	latest_tag="$(echo "$latest_tag" | head -n 1)"
+	read -r newest_tag < <(echo "$newest_tags" | grep -Po '21\.\d+\.\d+(?=-ga)' | sort -Vr)
 
-	[[ -z "${latest_tag}" ]] && termux_error_exit "ERROR: Unable to get tag from ${TERMUX_PKG_SRCURL}"
-	termux_pkg_upgrade_version "${latest_tag}"
+	[[ -z "${newest_tag}" ]] && termux_error_exit "ERROR: Unable to get tag from ${TERMUX_PKG_SRCURL}"
+	termux_pkg_upgrade_version "${newest_tag}"
 }
 
 termux_step_pre_configure() {
@@ -94,13 +92,13 @@ termux_step_configure() {
 		OBJDUMP="$OBJDUMP" \
 		STRIP="$STRIP" \
 		CXXFILT="llvm-cxxfilt" \
-		BUILD_CC="/usr/bin/clang-18" \
-		BUILD_CXX="/usr/bin/clang++-18" \
-		BUILD_NM="/usr/bin/llvm-nm-18" \
-		BUILD_AR="/usr/bin/llvm-ar-18" \
-		BUILD_OBJCOPY="/usr/bin/llvm-objcopy-18" \
-		BUILD_STRIP="/usr/bin/llvm-strip-18" \
-		$TERMUX_PKG_MAKE_PROCESSES
+		BUILD_CC="$TERMUX_HOST_LLVM_BASE_DIR/bin/clang" \
+		BUILD_CXX="$TERMUX_HOST_LLVM_BASE_DIR/bin/clang++" \
+		BUILD_NM="$TERMUX_HOST_LLVM_BASE_DIR/bin/llvm-nm" \
+		BUILD_AR="$TERMUX_HOST_LLVM_BASE_DIR/bin/llvm-ar" \
+		BUILD_OBJCOPY="$TERMUX_HOST_LLVM_BASE_DIR/bin/llvm-objcopy" \
+		BUILD_STRIP="$TERMUX_HOST_LLVM_BASE_DIR/bin/llvm-strip" \
+		--with-jobs=$TERMUX_PKG_MAKE_PROCESSES
 }
 
 termux_step_make() {
@@ -109,6 +107,7 @@ termux_step_make() {
 }
 
 termux_step_make_install() {
+	rm -rf  $TERMUX_PREFIX/lib/jvm/java-21-openjdk
 	mkdir -p $TERMUX_PREFIX/lib/jvm/java-21-openjdk
 	cp -r build/linux-${TERMUX_ARCH/i686/x86}-server-release/images/jdk/* \
 		$TERMUX_PREFIX/lib/jvm/java-21-openjdk/

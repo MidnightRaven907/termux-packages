@@ -1,7 +1,15 @@
 angle-android
-bionic-host
+aosp-libs
+carbonyl-host-tools
+carbonyl
+chromium
+chromium-host-tools
+code-oss
+electron-for-code-oss
+electron-host-tools-for-code-oss
 clvk
 dart
+deno
 dotnet8.0
 dotnet9.0
 firefox
@@ -13,5 +21,7 @@ rust
 swift
 thunderbird
 tinygo
+wasi-libc
 wasmer
 zig
+ghc

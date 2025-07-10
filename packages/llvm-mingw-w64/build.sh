@@ -3,9 +3,10 @@ TERMUX_PKG_DESCRIPTION="MinGW-w64 toolchain based on LLVM"
 TERMUX_PKG_LICENSE="ISC"
 TERMUX_PKG_MAINTAINER="@licy183"
 # Bump llvm-mingw-w64* to the same version in one PR.
-TERMUX_PKG_VERSION="20241030"
+TERMUX_PKG_VERSION="20250402"
+TERMUX_PKG_REVISION=1
 TERMUX_PKG_SRCURL=https://github.com/mstorsjo/llvm-mingw/releases/download/$TERMUX_PKG_VERSION/llvm-mingw-$TERMUX_PKG_VERSION-ucrt-ubuntu-20.04-x86_64.tar.xz
-TERMUX_PKG_SHA256=05c55108e9b400bda1d4cef8e22c0e5f9495f1316c072e92b9f7965114a30b66
+TERMUX_PKG_SHA256=a23248baa1447df94ed14dce07997ab01da45bda74ac5370bbd098ed1c56a362
 TERMUX_PKG_AUTO_UPDATE=false
 _LLVM_MAJOR_VERSION=$(. $TERMUX_SCRIPTDIR/packages/libllvm/build.sh; echo $LLVM_MAJOR_VERSION)
 _LLVM_MAJOR_VERSION_NEXT=$((_LLVM_MAJOR_VERSION + 1))
@@ -28,7 +29,11 @@ termux_step_make_install() {
 
 	# On Termux, use the wrapper script rather than the wrapper binary
 	rm *wrapper
-	rm *wrapper.sh.orig
+	rm *wrapper.sh.orig || true
+
+	# Install config files
+	mv mingw32-common.cfg $TERMUX_PREFIX/opt/llvm-mingw-w64/bin
+	mv {aarch64,armv7,i686,x86_64}*.cfg $TERMUX_PREFIX/opt/llvm-mingw-w64/bin
 
 	# Install prefixed scripts
 	mv {aarch64,armv7,i686,x86_64}* $TERMUX_PREFIX/opt/llvm-mingw-w64/bin
@@ -42,7 +47,7 @@ termux_step_make_install() {
 	done
 
 	# Symlinks prefixed scripts to $PREFIX/bin
-	for _tool in $TERMUX_PREFIX/opt/llvm-mingw-w64/bin/{aarch64,armv7,i686,x86_64}*; do
+	for _tool in $TERMUX_PREFIX/opt/llvm-mingw-w64/bin/{aarch64,armv7,i686,x86_64}-w64-mingw32*; do
 		if [ ! -e $TERMUX_PREFIX/bin/"$(basename $_tool)" ]; then
 			ln -sr $_tool $TERMUX_PREFIX/bin/"$(basename $_tool)"
 		fi

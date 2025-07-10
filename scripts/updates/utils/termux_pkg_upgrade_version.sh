@@ -1,4 +1,20 @@
 # shellcheck shell=bash
+_termux_should_cleanup() {
+	local space_available big_package="$1"
+	[[ "${big_package}" == "true" ]] && return 0 # true
+
+	if [[ -d "/var/lib/docker" ]]; then
+		# Get available space in bytes
+		space_available="$(df "/var/lib/docker" | awk 'NR==2 { print $4 * 1024 }')"
+
+		if (( space_available <= TERMUX_CLEANUP_BUILT_PACKAGES_THRESHOLD )); then
+			return 0 # true
+		fi
+	fi
+
+	return 1 # false
+}
+
 termux_pkg_upgrade_version() {
 	if [[ "$#" -lt 1 ]]; then
 		termux_error_exit <<-EndUsage
@@ -77,7 +93,7 @@ termux_pkg_upgrade_version() {
 	if [[ "${TERMUX_PKG_SHA256[*]}" != "SKIP_CHECKSUM" ]] && [[ "${TERMUX_PKG_SRCURL:0:4}" != "git+" ]]; then
 		echo n | "${TERMUX_SCRIPTDIR}/scripts/bin/update-checksum" "${TERMUX_PKG_NAME}" || {
 			git checkout -- "${TERMUX_PKG_BUILDER_DIR}"
-			git pull --rebase
+			git pull --rebase --autostash
 			termux_error_exit "ERROR: failed to update checksum."
 		}
 	fi
@@ -96,6 +112,8 @@ termux_pkg_upgrade_version() {
 		fi
 	done
 
+	local force_cleanup="false"
+
 	local big_package=false
 	while IFS= read -r p; do
 		if [[ "${p}" == "${TERMUX_PKG_NAME}" ]]; then
@@ -104,21 +122,15 @@ termux_pkg_upgrade_version() {
 		fi
 	done < "${TERMUX_SCRIPTDIR}/scripts/big-pkgs.list"
 
-	if [[ "${big_package}" == "true" ]]; then
-		"${TERMUX_SCRIPTDIR}/scripts/run-docker.sh" ./clean.sh
-	fi
+	_termux_should_cleanup "${big_package}" && "${TERMUX_SCRIPTDIR}/scripts/run-docker.sh" ./clean.sh
 
-	if ! "${TERMUX_SCRIPTDIR}/scripts/run-docker.sh" ./build-package.sh -a "${TERMUX_ARCH}" -i "${TERMUX_PKG_NAME}"; then
-		if [[ "${big_package}" == "true" ]]; then
-			"${TERMUX_SCRIPTDIR}/scripts/run-docker.sh" ./clean.sh
-		fi
+	if ! "${TERMUX_SCRIPTDIR}/scripts/run-docker.sh" ./build-package.sh -C -a "${TERMUX_ARCH}" -i "${TERMUX_PKG_NAME}"; then
+		_termux_should_cleanup "${big_package}" && "${TERMUX_SCRIPTDIR}/scripts/run-docker.sh" ./clean.sh
 		git checkout -- "${TERMUX_PKG_BUILDER_DIR}"
 		termux_error_exit "ERROR: failed to build."
 	fi
 
-	if [[ "${big_package}" == "true" ]]; then
-		"${TERMUX_SCRIPTDIR}/scripts/run-docker.sh" ./clean.sh
-	fi
+	_termux_should_cleanup "${big_package}" && "${TERMUX_SCRIPTDIR}/scripts/run-docker.sh" ./clean.sh
 
 	if [[ "${GIT_COMMIT_PACKAGES}" == "true" ]]; then
 		echo "INFO: Committing package."
@@ -127,6 +139,7 @@ termux_pkg_upgrade_version() {
 			git commit -m "bump(${repo}/${TERMUX_PKG_NAME}): ${LATEST_VERSION}" \
 				-m "This commit has been automatically submitted by Github Actions." 2>&1 >/dev/null
 		)" || {
+			git reset HEAD --hard
 			termux_error_exit <<-EndOfError
 			ERROR: git commit failed. See below for details.
 			${stderr}
@@ -137,7 +150,11 @@ termux_pkg_upgrade_version() {
 	if [[ "${GIT_PUSH_PACKAGES}" == "true" ]]; then
 		echo "INFO: Pushing package."
 		stderr="$(
-			git pull --rebase 2>&1 >/dev/null
+			# Fetch and pull before attempting to push to avoid a situation
+			# where a long running auto update fails because a later faster
+			# autoupdate got committed first and now the git history is out of date.
+			git fetch 2>&1 >/dev/null
+			git pull --rebase --autostash 2>&1 >/dev/null
 			git push 2>&1 >/dev/null
 		)" || {
 			termux_error_exit <<-EndOfError

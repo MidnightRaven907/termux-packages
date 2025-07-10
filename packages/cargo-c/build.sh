@@ -2,9 +2,9 @@ TERMUX_PKG_HOMEPAGE=https://github.com/lu-zero/cargo-c
 TERMUX_PKG_DESCRIPTION="Cargo C-ABI helpers"
 TERMUX_PKG_LICENSE="MIT"
 TERMUX_PKG_MAINTAINER="@termux"
-TERMUX_PKG_VERSION="0.10.9"
+TERMUX_PKG_VERSION="0.10.14"
 TERMUX_PKG_SRCURL=https://github.com/lu-zero/cargo-c/archive/refs/tags/v${TERMUX_PKG_VERSION}.tar.gz
-TERMUX_PKG_SHA256=4542e39aa67bf8712c60f21701cc8e8b5153d0344afe1b618f121f696b578a7f
+TERMUX_PKG_SHA256=eb6d09e871516083448f77b8677dbefc1dcc14e88d73eea82bcee903343e19c1
 TERMUX_PKG_AUTO_UPDATE=true
 TERMUX_PKG_UPDATE_VERSION_REGEXP='^\d+\.\d+(\.\d+)?$'
 TERMUX_PKG_DEPENDS="libcurl, libgit2, libssh2, openssl, zlib"
@@ -22,7 +22,6 @@ termux_pkg_auto_update() {
 termux_step_pre_configure() {
 	export LIBGIT2_SYS_USE_PKG_CONFIG=1
 	export LIBSSH2_SYS_USE_PKG_CONFIG=1
-	export PKG_CONFIG_ALLOW_CROSS=1
 
 	termux_setup_rust
 

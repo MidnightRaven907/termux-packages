@@ -2,7 +2,7 @@ TERMUX_PKG_HOMEPAGE=https://emscripten.org
 TERMUX_PKG_DESCRIPTION="Emscripten: An LLVM-to-WebAssembly Compiler"
 TERMUX_PKG_LICENSE="MIT"
 TERMUX_PKG_MAINTAINER="@termux"
-TERMUX_PKG_VERSION="4.0.1"
+TERMUX_PKG_VERSION="4.0.10"
 TERMUX_PKG_SRCURL=git+https://github.com/emscripten-core/emscripten
 TERMUX_PKG_GIT_BRANCH=${TERMUX_PKG_VERSION}
 TERMUX_PKG_DEPENDS="nodejs-lts | nodejs, python"
@@ -37,17 +37,16 @@ opt/emscripten-llvm/bin/clang-sycl-linker
 opt/emscripten-llvm/bin/diagtool
 opt/emscripten-llvm/bin/git-clang-format
 opt/emscripten-llvm/bin/hmaptool
-opt/emscripten-llvm/bin/llvm-cov
 opt/emscripten-llvm/bin/llvm-dlltool
 opt/emscripten-llvm/bin/llvm-lib
 opt/emscripten-llvm/bin/llvm-link
 opt/emscripten-llvm/bin/llvm-mca
 opt/emscripten-llvm/bin/llvm-ml
 opt/emscripten-llvm/bin/llvm-pdbutil
-opt/emscripten-llvm/bin/llvm-profdata
 opt/emscripten-llvm/bin/llvm-profgen
 opt/emscripten-llvm/bin/llvm-rc
 opt/emscripten-llvm/bin/nvptx-arch
+opt/emscripten-llvm/bin/offload-arch
 opt/emscripten-llvm/lib/libclang.so*
 opt/emscripten-llvm/share
 opt/emscripten/LICENSE
@@ -55,13 +54,13 @@ opt/emscripten/LICENSE
 
 # https://github.com/emscripten-core/emscripten/issues/11362
 # can switch to stable LLVM to save space once above is fixed
-_LLVM_COMMIT=a32e36faf84bd7da3df0c7d50bb9020568128417
-_LLVM_TGZ_SHA256=ef59e10e9df3aa5eb4152871c170be719469e691951c52b310cd0185b7fbde7b
+_LLVM_COMMIT=8f7e57485ee73205e108d74abb5565d5c63beaca
+_LLVM_TGZ_SHA256=ea3bdec770d19962bc678ec290d47feab1c88943acd26837a60caf5285768482
 
 # https://github.com/emscripten-core/emscripten/issues/12252
 # upstream says better bundle the right binaryen revision for now
-_BINARYEN_COMMIT=e4bfcd2a06db0640bfbf1654f575239ecab72443
-_BINARYEN_TGZ_SHA256=ca7bac829b4f5ef26af12f6a9da2a1baacf1d1b9eea67d8dbec0122a7ff73b72
+_BINARYEN_COMMIT=8c82b6884483315011541e4519afdcb7fd46df68
+_BINARYEN_TGZ_SHA256=7ab7ffe0dabbefe121ab4234a11d2ab04ff45827df050a0ab8b1cdc66465cbaf
 
 # https://github.com/emscripten-core/emsdk/blob/main/emsdk.py
 # https://chromium.googlesource.com/emscripten-releases/+/refs/heads/main/src/build.py
@@ -78,7 +77,7 @@ _LLVM_BUILD_ARGS="
 -DLLVM_ENABLE_LIBPFM=OFF
 -DLLVM_ENABLE_LIBXML2=OFF
 -DLLVM_ENABLE_LTO=Thin
--DLLVM_ENABLE_PROJECTS=clang;compiler-rt;lld
+-DLLVM_ENABLE_PROJECTS=clang;lld
 -DLLVM_INCLUDE_BENCHMARKS=OFF
 -DLLVM_INCLUDE_EXAMPLES=OFF
 -DLLVM_INCLUDE_TESTS=OFF
@@ -157,12 +156,15 @@ termux_pkg_auto_update() {
 
 termux_step_post_get_source() {
 	# for comparing files in termux_step_post_massage
-	pushd "${TERMUX_PKG_CACHEDIR}"
-	rm -fr emsdk
-	git clone https://github.com/emscripten-core/emsdk --depth=1
-	cd emsdk
-	./emsdk install latest
-	popd
+	if [[ ! -f "${TERMUX_PKG_CACHEDIR}/emsdk-fetched" || $(cat "${TERMUX_PKG_CACHEDIR}/emsdk-fetched") != "$TERMUX_PKG_VERSION" ]]; then
+		pushd "${TERMUX_PKG_CACHEDIR}"
+		rm -fr emsdk
+		git clone https://github.com/emscripten-core/emsdk --depth=1
+		cd emsdk
+		./emsdk install latest
+		echo "$TERMUX_PKG_VERSION" > "${TERMUX_PKG_CACHEDIR}"/emsdk-fetched
+		popd
+	fi
 
 	termux_download \
 		"https://github.com/llvm/llvm-project/archive/${_LLVM_COMMIT}.tar.gz" \
@@ -172,7 +174,9 @@ termux_step_post_get_source() {
 		"https://github.com/WebAssembly/binaryen/archive/${_BINARYEN_COMMIT}.tar.gz" \
 		"${TERMUX_PKG_CACHEDIR}/binaryen.tar.gz" \
 		"${_BINARYEN_TGZ_SHA256}"
+	rm -rf "${TERMUX_PKG_CACHEDIR}/llvm-project-${_LLVM_COMMIT}"
 	tar -xf "${TERMUX_PKG_CACHEDIR}/llvm.tar.gz" -C "${TERMUX_PKG_CACHEDIR}"
+	rm -rf "${TERMUX_PKG_CACHEDIR}/binaryen-${_BINARYEN_COMMIT}"
 	tar -xf "${TERMUX_PKG_CACHEDIR}/binaryen.tar.gz" -C "${TERMUX_PKG_CACHEDIR}"
 
 	local llvm_patches=$(find "${TERMUX_PKG_BUILDER_DIR}" -mindepth 1 -maxdepth 1 -type f -name 'llvm-project-*.diff')

@@ -16,25 +16,28 @@ check_package_license() {
 		license=$(sed -r 's/^\s*(\S+(\s+\S+)*)\s*$/\1/' <<< "$license")
 
 		case "$license" in
-			AFL-2.1|AFL-3.0|AGPL-V3|APL-1.0|APSL-2.0|Apache-1.0|Apache-1.1);;
-			Apache-2.0|Artistic-License-2.0|Attribution|BSD|"BSD 2-Clause");;
-			"BSD 3-Clause"|"BSD New"|"BSD Simplified"|BSL-1.0|Bouncy-Castle);;
-			CA-TOSL-1.1|CC0-1.0|CDDL-1.0|CDDL-1.1|CPAL-1.0|CPL-1.0|CPOL);;
-			CPOL-1.02|CUAOFFICE-1.0|CeCILL-1|CeCILL-2|CeCILL-2.1|CeCILL-B);;
-			CeCILL-C|Codehaus|Copyfree|curl|Day|Day-Addendum|ECL2|EPL-1.0|EPL-2.0);;
-			EUDATAGRID|EUPL-1.1|EUPL-1.2|Eiffel-2.0|Entessa-1.0);;
-			Facebook-Platform|Fair|Frameworx-1.0|GPL-2.0|GPL-3.0|GPL-3.0-only);;
-			GPL-3.0-or-later|Go|HSQLDB|Historical|HPND|IBMPL-1.0|IJG|IPAFont-1.0);;
-			ISC|IU-Extreme-1.1.1|ImageMagick|JA-SIG|JSON|JTidy|LGPL-2.0);;
-			LGPL-2.1|LGPL-3.0|LPPL-1.0|Libpng|Lucent-1.02|MIT|MPL-2.0|MS-PL);;
-			MS-RL|MirOS|Motosoto-0.9.1|Mozilla-1.1|Multics|NASA-1.3|NAUMEN);;
-			NCSA|NOSL-3.0|NTP|NUnit-2.6.3|NUnit-Test-Adapter-2.6.3|Nethack);;
-			Nokia-1.0a|OCLC-2.0|OSL-3.0|OpenLDAP|OpenSSL|Openfont-1.1);;
-			Opengroup|PHP-3.0|PHP-3.01|PostgreSQL|"Public Domain"|"Public Domain - SUN");;
-			PythonPL|PythonSoftFoundation|QTPL-1.0|RPL-1.5|Real-1.0|RicohPL);;
-			SUNPublic-1.0|Scala|SimPL-2.0|Sleepycat|Sybase-1.0|TMate|UPL-1.0);;
-			Unicode-DFS-2015|Unlicense|UoI-NCSA|"VIM License"|VovidaPL-1.0|W3C);;
-			WTFPL|Xnet|ZLIB|ZPL-2.0|wxWindows|X11);;
+			AFL-2.1|AFL-3.0|AGPL-V3|APL-1.0|APSL-2.0);;
+			Apache-1.0|Apache-1.1|Apache-2.0|Artistic-License-2.0|Attribution);;
+			BSD|"BSD 2-Clause"|"BSD 3-Clause"|"BSD New"|"BSD Simplified");;
+			BSL-1.0|Bouncy-Castle|CA-TOSL-1.1|CC0-1.0|CDDL-1.0|CDDL-1.1|CPAL-1.0|CPL-1.0);;
+			CPOL|CPOL-1.02|CUAOFFICE-1.0|CeCILL-1|CeCILL-2|CeCILL-2.1|CeCILL-B|CeCILL-C);;
+			Codehaus|Copyfree|curl|Day|Day-Addendum|ECL2|EPL-1.0|EPL-2.0|EUDATAGRID);;
+			EUPL-1.1|EUPL-1.2|Eiffel-2.0|Entessa-1.0|Facebook-Platform|Fair|Frameworx-1.0);;
+			GPL-2.0|GPL-2.0-only|GPL-2.0-or-later);;
+			GPL-3.0|GPL-3.0-only|GPL-3.0-or-later);;
+			Go|hdparm|HSQLDB|Historical|HPND|IBMPL-1.0|IJG|IPAFont-1.0|ISC|IU-Extreme-1.1.1);;
+			ImageMagick|JA-SIG|JSON|JTidy);;
+			LGPL-2.0|LGPL-2.0-only|LGPL-2.0-or-later);;
+			LGPL-2.1|LGPL-2.1-only|LGPL-2.1-or-later);;
+			LGPL-3.0|LGPL-3.0-only|LGPL-3.0-or-later);;
+			LPPL-1.0|Libpng|Lucent-1.02|MIT|MPL-2.0|MS-PL|MS-RL|MirOS|Motosoto-0.9.1);;
+			Mozilla-1.1|Multics|NASA-1.3|NAUMEN|NCSA|NOSL-3.0|NTP|NUnit-2.6.3);;
+			NUnit-Test-Adapter-2.6.3|Nethack|Nokia-1.0a|OCLC-2.0|OSL-3.0|OpenLDAP);;
+			OpenSSL|Openfont-1.1|Opengroup|PHP-3.0|PHP-3.01|PostgreSQL);;
+			"Public Domain"|"Public Domain - SUN"|PythonPL|PythonSoftFoundation);;
+			QTPL-1.0|RPL-1.5|Real-1.0|RicohPL|SUNPublic-1.0|Scala|SimPL-2.0|Sleepycat);;
+			Sybase-1.0|TMate|UPL-1.0|Unicode-DFS-2015|Unlicense|UoI-NCSA|"VIM License");;
+			VovidaPL-1.0|W3C|WTFPL|Xnet|ZLIB|ZPL-2.0|wxWindows|X11);;
 
 			*)
 				license_ok=false
@@ -43,7 +46,7 @@ check_package_license() {
 		esac
 	done
 
-	if ! "$license_ok"; then
+	if [[ "$license_ok" == 'false' ]]; then
 		return 1
 	fi
 
@@ -116,6 +119,26 @@ check_indentation() {
 	return 0
 }
 
+# Check the latest commit that modified `$package`
+# It must either:
+# - Modify TERMUX_PKG_REVISION
+# - Modify TERMUX_PKG_VERSION
+# - Or specify one of the CI skip tags
+check_version_change() {
+	local base_commit commit_diff package="$1"
+	base_commit="$(git merge-base 'master@{upstream}' 'HEAD')"
+	commit_diff="$(git log --patch "${base_commit}.." -- "$package")"
+
+	# If the diff is empty there's no commit modifying that package on this branch, which is a PASS.
+	[[ -z "$commit_diff" ]] && return
+
+	grep -q \
+		-e '^+TERMUX_PKG_REVISION=' \
+		-e '^+TERMUX_PKG_VERSION=' \
+		-e '\[no version check\]' <<< "$commit_diff" \
+	|| return 1
+}
+
 lint_package() {
 	local package_script
 	local package_name
@@ -136,7 +159,7 @@ lint_package() {
 			break
 		}
 	done
-	(( ! ${#in_dir}  )) && {
+	(( ! ${#in_dir} )) && {
 		echo "FAIL - '$package_script' is not a directory"
 		return 1
 	}
@@ -148,10 +171,10 @@ lint_package() {
 	echo "PASS"
 
 	check_package_name "$package_name" || return 1
-	local subpkg_script
-	for subpkg_script in $(dirname "$package_script")/*.subpackage.sh; do
-		test ! -f "$subpkg_script" && continue
-		local subpkg_name=$(basename "${subpkg_script%.subpackage.sh}")
+	local subpkg_script subpkg_name
+	for subpkg_script in "$(dirname "$package_script")"/*.subpackage.sh; do
+		[[ ! -f "$subpkg_script" ]] && continue
+		subpkg_name="$(basename "${subpkg_script%.subpackage.sh}")"
 		check_package_name "$subpkg_name" || return 1
 	done
 
@@ -182,8 +205,8 @@ lint_package() {
 
 	echo -n "Indentation check: "
 	local script
-	for script in "$package_script" $(dirname "$package_script")/*.subpackage.sh; do
-		test ! -f "$script" && continue
+	for script in "$package_script" "$(dirname "$package_script")"/*.subpackage.sh; do
+		[[ ! -f "$script" ]] && continue
 		check_indentation "$script" || return 1
 	done
 	echo "PASS"
@@ -208,6 +231,20 @@ lint_package() {
 		return 1
 	fi
 	echo "PASS"
+
+	echo -n "Version change check: "
+	if ! check_version_change "$package_script"; then
+		echo "FAILED"
+		echo
+		echo "Version of '$package_name' has not changed."
+		echo "Either 'TERMUX_PKG_REVISION' or 'TERMUX_PKG_VERSION'"
+		echo "need to be modified when changing a package build."
+		echo "Alternatively you can add '[no version check]'."
+		echo "To the commit message to skip this check."
+		echo
+		return 1
+	fi
+	echo "PASS"
 	echo
 
 	# Fields checking is done in subshell since we will source build.sh.
@@ -218,6 +255,7 @@ lint_package() {
 		# Using API 24 here.
 		TERMUX_PKG_API_LEVEL=24
 
+		# shellcheck source=/dev/null
 		. "$package_script"
 
 		pkg_lint_error=false
@@ -346,7 +384,7 @@ lint_package() {
 			done
 			unset url
 
-			if "$urls_ok"; then
+			if [[ "$urls_ok" == 'true' ]]; then
 				echo "PASS"
 			fi
 			unset urls_ok
@@ -502,7 +540,7 @@ lint_package() {
 			done <<< "$TERMUX_PKG_RM_AFTER_INSTALL"
 			unset file_path
 
-			if "$file_path_ok"; then
+			if [[ "$file_path_ok"  == 'true' ]]; then
 				echo "PASS"
 			fi
 			unset file_path_ok
@@ -524,7 +562,7 @@ lint_package() {
 			done <<< "$TERMUX_PKG_CONFFILES"
 			unset file_path
 
-			if "$file_path_ok"; then
+			if [[ "$file_path_ok" == 'true' ]]; then
 				echo "PASS"
 			fi
 			unset file_path_ok
@@ -541,7 +579,7 @@ lint_package() {
 			fi
 		fi
 
-		if "$pkg_lint_error"; then
+		if [[ "$pkg_lint_error" == 'true' ]]; then
 			exit 1
 		fi
 	exit 0
@@ -555,7 +593,6 @@ lint_package() {
 }
 
 linter_main() {
-	local package_counter=0
 	local problems_found=false
 	local package_script
 
@@ -565,18 +602,18 @@ linter_main() {
 			break
 		fi
 
-		(( package_counter++ ))
+		: $(( package_counter++ ))
 	done
 
-	if "$problems_found"; then
+	if [[ "$problems_found" == 'true' ]]; then
 		echo "================================================================"
 		echo
 		echo "A problem has been found in '$(realpath --relative-to="$TERMUX_SCRIPTDIR" "$package_script")'."
 		echo "Checked $package_counter packages before the first error was detected."
 		echo
 		echo "================================================================"
-
-		return 1
+		unset package_counter
+		exit 1
 	fi
 
 	echo "================================================================"
@@ -585,14 +622,16 @@ linter_main() {
 	echo "Everything seems ok."
 	echo
 	echo "================================================================"
-
-	return 0
+	return
 }
 
+package_counter=0
 if (( $# )); then
-	linter_main "$@" || exit 1
+	linter_main "$@"
+	unset package_counter
 else
-	for repo_dir in $(jq --raw-output 'del(.pkg_format) | keys | .[]' $TERMUX_SCRIPTDIR/repo.json); do
-		linter_main $repo_dir/*/build.sh
-	done || exit 1
+	for repo_dir in $(jq --raw-output 'del(.pkg_format) | keys | .[]' "$TERMUX_SCRIPTDIR/repo.json"); do
+		linter_main "$repo_dir"/*/build.sh
+	done
+	unset package_counter
 fi

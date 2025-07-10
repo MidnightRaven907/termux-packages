@@ -3,6 +3,7 @@ TERMUX_PKG_DESCRIPTION="A small and powerful JavaScript runtime"
 TERMUX_PKG_LICENSE="MIT"
 TERMUX_PKG_MAINTAINER="@termux"
 TERMUX_PKG_VERSION=1:22.11.1
+TERMUX_PKG_REVISION=1
 TERMUX_PKG_SRCURL=git+https://github.com/saghul/txiki.js
 TERMUX_PKG_DEPENDS="libcurl, libffi"
 TERMUX_PKG_BUILD_IN_SRC=true
@@ -20,7 +21,7 @@ TERMUX_PKG_HOSTBUILD=true
 #   '__alignof(long long) == 8' "non-wasi data layout"
 #   _Static_assert(_Alignof(int64_t) == 8, "non-wasi data layout");
 #   ^              ~~~~~~~~~~~~~~~~~~~~~~
-TERMUX_PKG_BLACKLISTED_ARCHES="i686"
+TERMUX_PKG_EXCLUDED_ARCHES="i686"
 
 termux_step_host_build() {
 	find $TERMUX_PKG_SRCDIR -mindepth 1 -maxdepth 1 ! -name '.git*' \

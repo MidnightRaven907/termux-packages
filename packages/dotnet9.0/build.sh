@@ -2,7 +2,7 @@ TERMUX_PKG_HOMEPAGE=https://dotnet.microsoft.com/en-us/
 TERMUX_PKG_DESCRIPTION=".NET 9.0"
 TERMUX_PKG_LICENSE="MIT"
 TERMUX_PKG_MAINTAINER="@truboxl"
-TERMUX_PKG_VERSION="9.0.1"
+TERMUX_PKG_VERSION="9.0.7"
 TERMUX_PKG_SRCURL=git+https://github.com/dotnet/dotnet
 TERMUX_PKG_GIT_BRANCH="v${TERMUX_PKG_VERSION}"
 TERMUX_PKG_BUILD_DEPENDS="krb5, libicu, openssl, zlib"
@@ -10,11 +10,29 @@ TERMUX_PKG_SUGGESTS="dotnet-sdk-9.0"
 TERMUX_PKG_CONFLICTS="dotnet8.0"
 TERMUX_PKG_BUILD_IN_SRC=true
 TERMUX_PKG_NO_STATICSPLIT=true
-TERMUX_PKG_FORCE_WAIT_FINISH=true
+TERMUX_PKG_AUTO_UPDATE=true
 # https://github.com/dotnet/runtime/issues/7335
 # linux-x86 is not officially supported but works
 # TODO linux-bionic-arm is broken
-TERMUX_PKG_BLACKLISTED_ARCHES="arm"
+TERMUX_PKG_EXCLUDED_ARCHES="arm"
+
+termux_pkg_auto_update() {
+	local api_url="https://api.github.com/repos/dotnet/core/git/refs/tags"
+	local latest_refs_tags=$(curl -s "${api_url}" | jq .[].ref | sed -ne "s|.*v\(9.0.*\)\"|\1|p")
+	if [[ -z "${latest_refs_tags}" ]]; then
+		echo "WARN: Unable to get latest refs tags from upstream. Try again later." >&2
+		return
+	fi
+
+	local latest_version=$(echo "${latest_refs_tags}" | sort -V | tail -n1)
+	if [[ "${latest_version}" == "${TERMUX_PKG_VERSION}" ]]; then
+		echo "INFO: No update needed. Already at version '${TERMUX_PKG_VERSION}'."
+		return
+	fi
+
+	termux_pkg_upgrade_version "${latest_version}"
+}
+
 
 termux_step_post_get_source() {
 	# set up dotnet cli and override source files
@@ -144,13 +162,21 @@ termux_step_configure() {
 termux_step_make() {
 	export CROSSCOMPILE=1
 	# --online needed to workaround restore issue
+	#
+	# https://github.com/advisories/GHSA-h4j7-5rxr-p4wc
+	# CVE-2025-26646
+	# TreatWarningsAsErrors=false to not error on NU1901
+	# until next fixed version
 	time ./build.sh \
 		--clean-while-building \
 		--use-mono-runtime \
 		--online \
 		--source-build \
+		-m:${TERMUX_PKG_MAKE_PROCESSES} \
 		-- \
 		/p:Configuration=${CONFIG} \
+		/p:TreatWarningsAsErrors=false \
+		/p:MSBuildTreatWarningsAsErrors=false \
 		/p:TargetArchitecture=${arch} \
 		/p:TargetRid=linux-bionic-${arch}
 
@@ -331,6 +357,20 @@ termux_step_post_make_install() {
 	unset ANDROID_NDK_ROOT CONFIG CROSSCOMPILE ROOTFS_DIR
 	unset EXTRA_CFLAGS EXTRA_CXXFLAGS EXTRA_LDFLAGS
 	unset arch
+}
+
+termux_step_post_massage() {
+	local _rpath_check_file
+	for _rpath_check_file in libSystem.Security.Cryptography.Native.OpenSsl.so libcoreclr.so libSystem.Net.Security.Native.so; do
+		local _rpath_check_readelf=$("$READELF" -d "${TERMUX_PREFIX}/lib/dotnet/shared/Microsoft.NETCore.App/${TERMUX_PKG_VERSION}/${_rpath_check_file}")
+		local _rpath=$(echo "${_rpath_check_readelf}" | sed -ne "s|.*RUNPATH.*\[\(.*\)\].*|\1|p")
+		if [[ "${_rpath}" != "${TERMUX_PREFIX}/lib" ]]; then
+			termux_error_exit "
+			Excessive RUNPATH found. Check readelf output below:
+			${_rpath_check_readelf}
+			"
+		fi
+	done
 }
 
 # References:
